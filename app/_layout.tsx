@@ -1,6 +1,7 @@
 import React from "react";
 import { Stack } from "expo-router";
-import { ClerkProvider } from "@clerk/clerk-expo";
+import { ClerkProvider, SignedIn, SignedOut } from "@clerk/clerk-expo";
+import LoginScreen from "../components/index"
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import * as SecureStore from "expo-secure-store";
 import './globals.css';
@@ -14,21 +15,22 @@ if (!publishableKey) {
 }
 
 export default function RootLayout() {
-  return <ClerkProvider >
-    <Stack>
-      <Stack.Screen
-        name="index"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="(tabs)"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="cars/[id]"
-        options={{ headerShown: false }}
-      />
-    </Stack>
+  return <ClerkProvider publishableKey={publishableKey}>
+    <SignedIn>
+      <Stack>
+        <Stack.Screen
+          name="(tabs)"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="cars/[id]"
+          options={{ headerShown: false }}
+        />
+      </Stack>
+    </SignedIn>
+    <SignedOut>
+      <LoginScreen />
+    </SignedOut>
   </ClerkProvider>
 
 }
