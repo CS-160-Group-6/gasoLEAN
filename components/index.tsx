@@ -1,6 +1,6 @@
 import * as WebBrowser from "expo-web-browser";
 import React, { useCallback, useEffect } from "react";
-import { Text, View, Button, Pressable } from "react-native";
+import { Text, View, Button, Pressable, SafeAreaView } from "react-native";
 import { Link, router } from "expo-router";
 import { useSSO, useUser } from "@clerk/clerk-expo";
 import * as AuthSession from 'expo-auth-session'
@@ -63,9 +63,10 @@ const SignInWithOAuth = () => {
     }, [isSignedIn]);
 
     return (
-        <View className="flex-1 justify-center items-center bg-white px-6">
-            <Text className="text-2xl font-semibold mb-4">Sign into GasoLean</Text>
-            <Text className="text-gray-500 mb-8">Welcome back! Please sign in to continue</Text>
+
+        <View className="bg-current flex-1 justify-center items-center px-6">
+            <Text className="text-black text-2xl font-semibold mb-4">Sign into GasoLean</Text>
+            <Text className="text-black mb-8">Welcome back! Please sign in to continue</Text>
 
             <Pressable
                 onPress={onPress}
@@ -74,5 +75,6 @@ const SignInWithOAuth = () => {
                 <Text className="text-white text-base font-medium">Continue with Google</Text>
             </Pressable>
         </View>
+
     );
 }; export default SignInWithOAuth;
