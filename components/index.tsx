@@ -6,7 +6,7 @@ import { useSSO, useUser } from "@clerk/clerk-expo";
 import * as AuthSession from 'expo-auth-session'
 import * as Linking from "expo-linking";
 import { icon } from '@/constants/icon';
-
+import { images } from '@/constants/images';
 export const useWarmUpBrowser = () => {
     useEffect(() => {
         // Preloads the browser for Android devices to reduce authentication load time
@@ -65,18 +65,28 @@ const SignInWithOAuth = () => {
 
     return (
 
-        <View className="bg-gray-100 flex-1 justify-center items-center px-6">
-            <Text className="text-black text-2xl font-semibold mb-4">Sign into GasoLean</Text>
-            <Text className="text-black mb-8">Welcome back! Please sign in to continue</Text>
+        <SafeAreaView className="flex-1 bg-gray-100">
+            {/* Logo section near the top */}
+            <View className="items-center mt-12 flex">
+                <Image source={images.gasoLean} className="w-64 h-40 mb-6 mt-40" />
+            </View>
 
-            <Pressable
-                onPress={onPress}
-                className="flex flex-row items-center justify-center h-14 px-6 py-3 bg-black rounded-full"
-            >
-                <Image source={icon.google} className='size-7' />
-                <Text className="text-white text-base font-medium ml-3">Continue with Google</Text>
-            </Pressable>
-        </View>
+            {/* Centered button and text */}
+            <View className="flex-1 justify-center items-center px-6">
+                <Pressable
+                    onPress={onPress}
+                    className="flex flex-row items-center justify-center h-14 px-6 py-3 bg-black rounded-full"
+                >
+                    <Image source={icon.google} className="size-7" />
+                    <Text className="text-white text-base font-medium ml-3">
+                        Continue with Google
+                    </Text>
+                </Pressable>
 
+                <Text className="text-black mt-5">
+                    Welcome back! Please sign in to continue
+                </Text>
+            </View>
+        </SafeAreaView>
     );
 }; export default SignInWithOAuth;
