@@ -1,10 +1,11 @@
 import * as WebBrowser from "expo-web-browser";
 import React, { useCallback, useEffect } from "react";
-import { Text, View, Button, Pressable, SafeAreaView } from "react-native";
+import { Image, Text, View, Button, Pressable, SafeAreaView } from "react-native";
 import { Link, router } from "expo-router";
 import { useSSO, useUser } from "@clerk/clerk-expo";
 import * as AuthSession from 'expo-auth-session'
 import * as Linking from "expo-linking";
+import { icon } from '@/constants/icon';
 
 export const useWarmUpBrowser = () => {
     useEffect(() => {
@@ -64,15 +65,16 @@ const SignInWithOAuth = () => {
 
     return (
 
-        <View className="bg-current flex-1 justify-center items-center px-6">
+        <View className="bg-gray-100 flex-1 justify-center items-center px-6">
             <Text className="text-black text-2xl font-semibold mb-4">Sign into GasoLean</Text>
             <Text className="text-black mb-8">Welcome back! Please sign in to continue</Text>
 
             <Pressable
                 onPress={onPress}
-                className="flex-row items-center justify-center px-6 py-3 bg-black rounded-full"
+                className="flex flex-row items-center justify-center h-14 px-6 py-3 bg-black rounded-full"
             >
-                <Text className="text-white text-base font-medium">Continue with Google</Text>
+                <Image source={icon.google} className='size-7' />
+                <Text className="text-white text-base font-medium ml-3">Continue with Google</Text>
             </Pressable>
         </View>
 
