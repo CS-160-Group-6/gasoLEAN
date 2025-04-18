@@ -4,7 +4,7 @@ from config import settings
 class OBDService:
     def __init__(self) -> None:
         self.connection = obd.OBD(settings.OBD_PORT)
-        obd.logger.setLevel(obd.logging.INFO)
+        obd.logger.setLevel(obd.logging.DEBUG)
         obd.logger.info(f"Connecting to {settings.OBD_PORT} - Status: {self.connection.status()}")
 
     def is_car_connected(self):

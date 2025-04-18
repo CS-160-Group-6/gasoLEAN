@@ -11,7 +11,7 @@ log = utils.logger.get_logger('obd_backend')
 
 def main():
     obd = services.OBDService()
-    OBD.logger.setLevel(OBD.logging.INFO)
+    OBD.logger.setLevel(OBD.logging.DEBUG)
     if not obd.is_car_connected():
         OBD.logger.info(f"Failed to connect to OBD device.")
         return
