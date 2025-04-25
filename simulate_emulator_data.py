@@ -1,26 +1,57 @@
-# simulate_emulator_data.py
 
 import time
-import serial
+import serial  # Used to communicate with the ELM327 emulator over serial
+from utils.logger import get_logger
 
-# Match the correct emulator port and baudrate
-emulator_port = "/dev/ttys004"
-ser = serial.Serial(emulator_port, 38400, timeout=1)
+logger = get_logger("simulator")
+emulator_port = "/dev/ttys002"
+baudrate = 38400
 
-# Simulated trip data (customizable)
-speed_values = [0, 20, 40, 60, 80, 100, 80, 60, 40, 20, 0]  # in km/h
-rpm_values   = [700, 1000, 1500, 2000, 2500, 3000, 2500, 2000, 1500, 1000, 700]  # in RPM
+#idk whatt this is but necessary
+ser = serial.Serial(emulator_port, baudrate, timeout=1)
 
-# Send simulated data to emulator
-for speed, rpm in zip(speed_values, rpm_values):
+# === DRIVING PROFILE ===
+# Realistic simulation of a staged trip: idle, acceleration, cruise, highway, deceleration
+profile = [
+    (0, 700), (0, 700), (0, 700),               # Idle
+    (30, 1200), (30, 1200), (30, 1200),         # Acceleration
+    (60, 1800), (60, 1800),                     # Cruising
+    (90, 2600), (90, 2700), (90, 2800),         # Highway
+    (60, 1800), (30, 1200), (0, 700)            # Deceleration to stop
+]
+
+logger.info("Starting OBD-II trip simulation\n")
+
+#MAIN LOOP
+for speed, rpm in profile:
+    # Convert speed to a 1-byte hex value for PID 010D
     speed_hex = format(speed, '02X')
+
+    # Convert RPM to 2-byte hex value for PID 010C (actual RPM = ((A*256) + B) / 4)
     rpm_val = int(rpm * 4)
     rpm_hex = format(rpm_val, '04X')
-    A, B = rpm_hex[:2], rpm_hex[2:]
+    A = rpm_hex[:2]
+    B = rpm_hex[2:]
 
-    ser.write(f"edit 010D 7E8 03 41 0D {speed_hex}\n".encode())
-    ser.write(f"edit 010C 7E8 04 41 0C {A} {B}\n".encode())
+    # Prepare ELM327 edit commands (use \r at end) CHECK THIS POSING EDIT COMMAND ERROR LOG ON EMULATOR CONSOLE BUT IT IS STILL WORKING FINE, I THINK WHEN WE PLUG IN REAL DEVICE EVERYTHING SHOULD WORK FINE.
+    speed_cmd = f"edit 010D 7E8 03 41 0D {speed_hex}\r"
+    rpm_cmd = f"edit 010C 7E8 04 41 0C {A} {B}\r"
 
-    print(f"[SENT] Speed: {speed} km/h | RPM: {rpm}")
-    time.sleep(2)  # every 2 seconds
+    # Send the commands to emulator (one at a time)
+    ser.write(speed_cmd.encode())
+    ser.flush()
+    time.sleep(0.1)
+
+    ser.write(rpm_cmd.encode())
+    ser.flush()
+    time.sleep(0.1)
+
+    # loggong
+    logger.info(f"[SENT] Speed: {speed} km/h | RPM: {rpm}")
+
+    # Stimulate real-time update frequency
+    time.sleep(2)
+
+
+ser.close()
 

@@ -15,7 +15,7 @@ def run_test():
     logging.info("Connecting to OBD device...")
 
     # Adjust this to your emulator port
-    connection = obd.OBD(portstr="/dev/ttys004", baudrate=38400, fast=False)
+    connection = obd.OBD(portstr="/dev/ttys002", baudrate=38400, fast=False)
 
     if not connection.is_connected():
         logging.error("Could not connect to OBD device.")

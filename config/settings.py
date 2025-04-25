@@ -1,3 +1,3 @@
-OBD_PORT = "/dev/ttys004"
+OBD_PORT = "/dev/ttys002"
 
 
