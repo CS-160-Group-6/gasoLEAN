@@ -1,30 +1,25 @@
-# test.py
-
 import obd
 import time
-import logging
+from config import settings
 
 # Logger setup
-logging.basicConfig(
-    level=logging.INFO,
+obd.logging.basicConfig(
+    level=obd.logging.INFO,
     format='[%(asctime)s] %(levelname)s - %(message)s',
     datefmt='%H:%M:%S'
 )
 
 def run_test():
-    logging.info("Connecting to OBD device...")
+    obd.logging.info("Connecting to OBD device...")
 
-    # Adjust this to your emulator port
-    connection = obd.OBD(portstr="/dev/pts/2", baudrate=38400, fast=False)
+    connection = obd.OBD(portstr=settings.OBD_PORT, baudrate=38400, fast=False)
 
     if not connection.is_connected():
-        logging.error("Could not connect to OBD device.")
+        obd.logging.error("Could not connect to OBD device.")
         return
 
-    time.sleep(2)  # Allow emulator to warm up and start feeding values
-
-    logging.info("Connected to OBD device.")
-    logging.info("Collecting 10 samples from emulator...")
+    obd.logging.info("Connected to OBD device.")
+    obd.logging.info("Collecting 10 samples from emulator...")
 
     speed_cmd = obd.commands.SPEED
     rpm_cmd = obd.commands.RPM
@@ -48,7 +43,7 @@ def run_test():
             time.sleep(1)
             rpm = connection.query(rpm_cmd).value or "N/A"
 
-        logging.info(f"[Sample {i+1}] Speed: {speed}, RPM: {rpm}")
+        obd.logging.info(f"[Sample {i+1}] Speed: {speed}, RPM: {rpm}")
 
         data.append({
             "timestamp": timestamp,
@@ -58,7 +53,7 @@ def run_test():
 
         time.sleep(2)
 
-    logging.info("Data collection complete.\n")
+    obd.logging.info("Data collection complete.\n")
 
     print("--- Final Trip Data ---")
     for entry in data:
