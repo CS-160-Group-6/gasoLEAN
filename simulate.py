@@ -1,79 +1,71 @@
 import time
-import threading
 import obd
 from elm import Elm
-from elm.interpreter import Edit, Interpreter
+from elm.interpreter import Edit
 
-class EmulatorController:
-    def __init__(self):
-        self.emulator = None
-        self.pty_path = None
-        self.interpreter_thread = None
+emulator = None
+pty_path = None
 
-    def start_emulator(self):
-        self.emulator = Elm()
-        self.emulator.set_defaults()
-        self.emulator.threadState = self.emulator.THREAD.ACTIVE
-        time.sleep(1)
-        self.pty_path = self.emulator.get_pty()
-        self.emulator.connect_serial()
-        self.emulator.scenario = 'car'
+def start_emulator():
+    global emulator, pty_path
+    emulator = Elm()
+    emulator.set_defaults()
+    emulator.threadState = emulator.THREAD.ACTIVE
+    emulator.__enter__() # Start its internal PTY + interpreter
 
-        def emulator_backend():
-            interpreter = Interpreter(self.emulator, args=type('', (), {'batch_mode': False})())
-            
-            while True:
-                try:
-                    if self.emulator.serial_port:
-                        cmd = self.emulator.serial_port.readline()
-                        if cmd:
-                            cmd_str = cmd.decode('utf-8', errors='ignore').strip()
-                            interpreter.default(cmd_str)
-                    time.sleep(0.01)
-                except Exception as e:
-                    print(f"Error in emulator backend: {e}")
-                    break
+    # A small timeout if required
+    timeout, interval, elapsed = 5.0, 0.1, 0.0
+    pty_path = None
+    while elapsed < timeout:
+        pty_path = emulator.get_pty()
+        if pty_path:
+            break
+        time.sleep(interval)
+        elapsed += interval
+    if not pty_path:
+        raise RuntimeError("Unable to get PTY path from emulator")
 
-        self.interpreter_thread = threading.Thread(target=emulator_backend, daemon=True)
-        self.interpreter_thread.start()
+    emulator.connect_serial()
+    emulator.scenario = "car" # Set the scenario to 'car' for OBD-II emulation
+    print(f"Emulator started on {pty_path}")
 
-        print(f"Emulator started on {self.pty_path}")
-
-    def stop_emulator(self):
-        if self.emulator:
-            self.emulator.terminate()
-            print("Emulator stopped")
-
-    def edit_pid(self, pid, position, replace_bytes):
-        with Edit(self.emulator, pid) as edit:
-            success = edit.answer(position, replace_bytes)
-            if success:
-                print(f"Edited PID {pid} successfully")
-            else:
-                print(f"Failed to edit PID {pid}")
+def stop_emulator():
+    global emulator
+    if emulator:
+        emulator.__exit__(None, None, None)
+        emulator = None
+        print("Emulator stopped")
 
 def run_simulation():
-    controller = EmulatorController()
+    global pty_path
 
     try:
-        controller.start_emulator()
+        start_emulator()
+        time.sleep(0.5)
 
-        time.sleep(2)
+        print(f"Connecting to emulator at {pty_path}")
+        conn = obd.OBD(pty_path, fast=False)
 
-        controller.edit_pid('SPEED', 2, '3C')  # 60 km/h
-        controller.edit_pid('RPM', 2, '07D0')  # 2000
+				# Ensure connectivity
+        while conn.status() != obd.OBDStatus.CAR_CONNECTED:
+            time.sleep(0.05)
 
-        print(f"Connecting to emulator at {controller.pty_path}...")
-        connection = obd.OBD(controller.pty_path, fast=False)
+        # open both Edit contexts _around_ the queries
+        with Edit(emulator, 'SPEED') as e_speed, \
+             Edit(emulator, 'RPM')   as e_rpm:
 
-        speed_response = connection.query(obd.commands.SPEED)
-        rpm_response = connection.query(obd.commands.RPM)
+            e_speed.answer(2, '3C', 'SPEED') # 60 kph
+            # The RPM value must be multiplied by 4 due to the protocol's encoding requirements.
+            e_rpm.answer(2, '1F40', 'RPM')
 
-        print(f"Queried SPEED: {speed_response.value}")
-        print(f"Queried RPM: {rpm_response.value}")
+            speed_response = conn.query(obd.commands.SPEED)
+            rpm_response   = conn.query(obd.commands.RPM)
+
+            print(f"Queried SPEED: {speed_response.value}")
+            print(f"Queried RPM: {rpm_response.value}")
 
     finally:
-        controller.stop_emulator()
+        stop_emulator()
 
 if __name__ == "__main__":
     run_simulation()
