@@ -1,12 +1,17 @@
 import time
 import obd
+import logging
 from elm import Elm
 from elm.interpreter import Edit
 
 emulator = None
 pty_path = None
 
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(levelname)s - %(message)s')
+
 def start_emulator():
+    '''Sets up and starts the emulator'''
     global emulator, pty_path
     emulator = Elm()
     emulator.set_defaults()
@@ -27,14 +32,27 @@ def start_emulator():
 
     emulator.connect_serial()
     emulator.scenario = "car" # Set the scenario to 'car' for OBD-II emulation
-    print(f"Emulator started on {pty_path}")
+    logging.info(f"Emulator started on {pty_path}")
+    
+def edit_values(emulator: Elm, position:int, new_value: str,  field: str) -> bool:
+    '''
+    Edit the emulator's values for speed and RPM.
+    
+    :param emulator: The Elm emulator instance.
+    :param position: The position in the data structure to edit.
+    :param new_value: The new value to set (as a hex string).
+    :param field: The field to edit ('SPEED' or 'RPM', etc.).
+    '''
+    edit_speed = Edit(emulator, pid=field)
+    return edit_speed.answer(position=position, replace_bytes=new_value, pid=field)
 
 def stop_emulator():
+    '''Stops the emulator'''
     global emulator
     if emulator:
-        emulator.__exit__(None, None, None)
+        emulator.terminate()
         emulator = None
-        print("Emulator stopped")
+        logging.info("Emulator stopped")
 
 def run_simulation():
     global pty_path
@@ -43,27 +61,35 @@ def run_simulation():
         start_emulator()
         time.sleep(0.5)
 
-        print(f"Connecting to emulator at {pty_path}")
+        logging.info(f"Connecting to emulator at {pty_path}")
         conn = obd.OBD(pty_path, fast=False)
 
-				# Ensure connectivity
+		# Ensure connectivity
         while conn.status() != obd.OBDStatus.CAR_CONNECTED:
             time.sleep(0.05)
-
-        # open both Edit contexts _around_ the queries
-        with Edit(emulator, 'SPEED') as e_speed, \
-             Edit(emulator, 'RPM')   as e_rpm:
-
-            e_speed.answer(2, '3C', 'SPEED') # 60 kph
-            # The RPM value must be multiplied by 4 due to the protocol's encoding requirements.
-            e_rpm.answer(2, '1F40', 'RPM')
-
-            speed_response = conn.query(obd.commands.SPEED)
-            rpm_response   = conn.query(obd.commands.RPM)
-
-            print(f"Queried SPEED: {speed_response.value}")
-            print(f"Queried RPM: {rpm_response.value}")
-
+        
+        fields_to_change = ['SPEED', 'RPM']
+        values_to_change = ['3C', '1F40']  # Hexadecimal values for 60 kph and 2000 RPM
+        position = 2  # Position in the data structure to edit
+        
+        for field, new_value in zip(fields_to_change, values_to_change):
+            logging.info(f"Editing {field} at position {position} to {new_value}")
+            
+            if edit_values(emulator, position, new_value, field):
+                logging.info(f"Edited {field} at position {position} to {new_value}")
+            else:
+                logging.error(f"Failed to edit {field} at position {position} to {new_value}")
+                stop_emulator()
+        
+        speed_response = conn.query(obd.commands.SPEED)
+        rpm_response = conn.query(obd.commands.RPM)
+        
+        if speed_response.is_null() or rpm_response.is_null():
+            logging.error("Failed to retrieve speed or RPM from the emulator")
+            stop_emulator()
+        else:
+            logging.info(f"Speed: {speed_response.value}, RPM: {rpm_response.value}")
+        
     finally:
         stop_emulator()
 
