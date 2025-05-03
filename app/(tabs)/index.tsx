@@ -1,7 +1,8 @@
 // Import at the top of your file
 import React, { useState, useEffect } from 'react';
 import { Platform, PermissionsAndroid, Button, View, Text, FlatList, TouchableOpacity, SafeAreaView } from 'react-native';
-//import { BleManager, Device } from 'react-native-ble-plx';
+//import { PeripheralServices } from "@/types/bluetooth";
+
 
 //const manager = new BleManager();
 
