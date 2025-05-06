@@ -39,7 +39,7 @@ def create_ride(payload: RideCreate, db: Session = Depends(dependency=get_db)) -
 
     return ride
 
-@router.get(path="/", response_model=list[RideRead])
+@router.get(path="/rides", response_model=list[RideRead])
 def list_rides(db: Session = Depends(dependency=get_db)) -> List[Ride]:
     '''
     List all rides in the database. Use a GET request to retrieve all rides.
