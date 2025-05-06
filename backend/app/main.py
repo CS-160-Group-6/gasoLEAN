@@ -1,3 +1,13 @@
+import os
+import sys
+
+# Add the parent directory to the Python path
+HERE: str = os.path.dirname(os.path.abspath(path=__file__))
+PARENT_DIR: str = os.path.dirname(HERE)
+
+if PARENT_DIR not in sys.path:
+    sys.path.append(PARENT_DIR)
+
 from fastapi import FastAPI
 import uvicorn
 
