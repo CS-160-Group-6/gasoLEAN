@@ -1,30 +1,29 @@
-# from services.obd_service import *
-# from models.trip_data import TripData
-# from utils.logger import get_logger
+from fastapi import FastAPI
+import uvicorn
 
-import services
-import models
-import utils
-import obd as OBD
+from app.config import settings
+from app.db.session import engine
+from app.db.models import Base
+from app.api.v1.routers.health import router as health_router
 
-log = utils.logger.get_logger('obd_backend')
+Base.metadata.create_all(bind=engine)
 
-def main():
-    obd = services.OBDService()
-    OBD.logger.setLevel(OBD.logging.DEBUG)
-    if not obd.is_car_connected():
-        OBD.logger.info(f"Failed to connect to OBD device.")
-        return
+app = FastAPI(
+    title="gasoLEAN API",
+    version="0.0.1",
+    openapi_url="/openapi.json"
+)
 
-    trip = models.trip_data.TripData()
-
-    OBD.logger.info(f"Collecting data ...")
-    for _ in range(5):
-        trip.record_sample(obd.get_speed(), obd.get_rpm())
-       
-    OBD.logger.info(trip.rpms)
-    OBD.logger.info(trip.speeds)
-    # TODO: Call the scorer and give the score
+app.include_router(
+    router=health_router,
+    prefix="/api/v1",
+    tags=["health"]
+)
 
 if __name__ == "__main__":
-    main()
+    uvicorn.run(
+        app="app.main:app",
+        host="127.0.0.1",
+        port=8000,
+        reload=True
+    )
