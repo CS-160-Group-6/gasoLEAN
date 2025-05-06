@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import Result
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
@@ -18,6 +18,6 @@ def health_check(db: Session = Depends(dependency=get_db)) -> HealthResponse:
 
     result = db.execute(text('SELECT 1'))
     if not isinstance(result, Result):
-        raise Exception("Database connection failed")
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE , detail="Database connection failed")
 
     return HealthResponse(status="ok")

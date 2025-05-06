@@ -15,6 +15,7 @@ from app.config import settings
 from app.db.session import engine
 from app.db.models import Base
 from app.api.v1.routers.health import router as health_router
+from app.api.v1.routers.rides import router as rides_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -28,6 +29,12 @@ app.include_router(
     router=health_router,
     prefix="/api/v1",
     tags=["health"]
+)
+
+app.include_router(
+    router=rides_router,
+    prefix="/api/v1",
+    tags=["rides"]
 )
 
 if __name__ == "__main__":

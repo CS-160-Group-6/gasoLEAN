@@ -9,9 +9,6 @@ class Ride(Base):
     ORM model for a car ride.
     This model represents a ride taken by a user, including various metrics such as speed, distance, and duration.
     It is used to store and retrieve ride data from the database.
-
-    :param Base: SQLAlchemy declarative base class
-    :type Base: sqlalchemy.ext.declarative.Base
     '''
     __tablename__: str = 'rides'
 
