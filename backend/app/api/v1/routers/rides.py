@@ -46,7 +46,7 @@ def list_rides(db: Session = Depends(dependency=get_db)) -> List[Ride]:
     :param db: Database session dependency
     :return: List of all rides in the database
     '''
-    rides: List[Ride] = db.query(Ride).order_by(__first=Ride.start_time.desc()).all()
+    rides: List[Ride] = db.query(Ride).order_by(Ride.start_time.desc()).all()
 
     if not rides:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No rides found")
