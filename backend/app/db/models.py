@@ -1,5 +1,6 @@
+import datetime
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, Float, DateTime
+from sqlalchemy import Column, ForeignKey, Integer, Float, DateTime
 
 # Base class for all ORM models
 Base = declarative_base()
@@ -23,3 +24,18 @@ class Ride(Base):
     max_rpm = Column(Float, nullable=False) # Maximum revolutions per minute
     duration = Column(Integer, nullable=False) # Duration in seconds
     score = Column(Float, nullable=False)
+
+class Measurement(Base):
+    '''
+    ORM model for a measurement.
+    This model represents a measurement taken during a ride. The measurements taken are for speed, and RPM.
+    Each measurement is associated with a ride and has a timestamp. It is used to store and retrieve
+    measurement data from the database.
+    '''
+    __tablename__: str = 'measurements'
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    ride_id = Column(Integer, ForeignKey(column="rides.id"), nullable=False, index=True)
+    timestamp = Column(DateTime, default=datetime.datetime.now, nullable=False)
+    speed = Column(Float, nullable=False) # Speed in km/h
+    rpm = Column(Float, nullable=False) # Revolutions per minute
