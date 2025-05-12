@@ -1,5 +1,6 @@
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from app.db.models import Measurement
+from app.db.models import Measurement, Ride
 from app.api.v1.schemas.measurement import MeasurementCreate
 
 def create_measurement(db: Session, m: MeasurementCreate) -> Measurement:
@@ -24,3 +25,28 @@ def list_measurements(ride_id: int, db: Session) -> list[Measurement]:
     :return: A list of measurements for the specified ride
     '''
     return db.query(Measurement).filter(Measurement.ride_id == ride_id).order_by(Measurement.timestamp).all()
+
+def finalize_fuel_usage(db: Session, ride_id: int, start_pct: float, end_pct: float) -> Ride:
+    '''
+    Finalize the fuel usage for a ride.
+
+    :param db: SQLAlchemy session object
+    :param ride_id: ID of the ride to finalize
+    :param start_pct: Starting fuel level percentage
+    :param end_pct: Ending fuel level percentage
+
+    :return: The updated ride object with actual_used_gal and fuel_saved_gal calculated
+    '''
+    ride = db.query(Ride).get(ride_id)
+    if not ride:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'Rdie #{ride_id} not found')
+
+    baseline_mpg = ride.distance / ride.epa_mpg
+
+    frac_used: float = (start_pct - end_pct) / 100.0
+    ride.actual_used_gal = baseline_mpg * frac_used
+    ride.fuel_saved_gal = baseline_mpg - ride.actual_used_gal
+
+    db.commit()
+    db.refresh(ride)
+    return ride

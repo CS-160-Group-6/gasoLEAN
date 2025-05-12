@@ -18,6 +18,9 @@ class Ride(Base):
     start_time = Column(DateTime, nullable=False)
     end_time = Column(DateTime, nullable=False)
     distance = Column(Float, nullable=False)
+    epa_mpg = Column(Float, nullable=False)
+    actual_used_gal = Column(Float, nullable=False, default=0.0)
+    fuel_saved_gal = Column(Float, nullable=False, default=0.0)
     avg_speed = Column(Float, nullable=False) # Average speed in km/h
     max_speed = Column(Float, nullable=False) # Maximum speed in km/h
     avg_rpm = Column(Float, nullable=False) # Average revolutions per minute
@@ -39,3 +42,4 @@ class Measurement(Base):
     timestamp = Column(DateTime, default=datetime.datetime.now, nullable=False)
     speed = Column(Float, nullable=False) # Speed in km/h
     rpm = Column(Float, nullable=False) # Revolutions per minute
+    fuel_level_pct = Column(Float, nullable=False)

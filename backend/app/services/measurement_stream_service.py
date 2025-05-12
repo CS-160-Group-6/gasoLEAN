@@ -5,8 +5,9 @@ import threading, time, logging
 import obd
 
 from app.core.obd_integration import connect_to_obd
-from app.db.crud.measurement import create_measurement
+from app.db.crud.measurement import create_measurement, finalize_fuel_usage, list_measurements
 from app.db.crud.ride import get_ride
+from app.db.models import Measurement
 from app.db.session import get_db
 from app.api.v1.schemas.measurement import MeasurementCreate
 
@@ -48,13 +49,15 @@ class MeasurementStreamService:
                 # Get measurements from OBD-II device
                 speed: obd.OBDResponse = self.conn.query(cmd=obd.commands.SPEED)
                 rpm: obd.OBDResponse = self.conn.query(cmd=obd.commands.RPM)
+                fuel_pct: obd.OBDResponse = self.conn.query(cmd=obd.commands.FUEL_LEVEL)
 
                 # Check if we received both speed and RPM
-                if not speed.is_null() or not rpm.is_null():
+                if not speed.is_null() or not rpm.is_null() or not fuel_pct.is_null():
                     record = {
                         "ride_id": ride_id,
                         "speed": float(speed.value.magnitude),
-                        "rpm": float(rpm.value.magnitude)
+                        "rpm": float(rpm.value.magnitude),
+                        "fuel_level_pct": float(fuel_pct.value.magnitude)
                     }
 
                     logging.info("Recorded measurement: %s", record)
@@ -88,3 +91,12 @@ class MeasurementStreamService:
         stop_evt.set()
         thread.join()
         logging.info("Stopped streaming measurements for ride ID %s", ride_id)
+
+        measurements: list[Measurement] = list_measurements(ride_id=ride_id, db=self.db)
+
+        start_pct: float = measurements[0].fuel_level_pct
+        end_pct: float = measurements[-1].fuel_level_pct
+        logging.info("Finalizing fuel usage for ride ID %s: start_pct=%.2f, end_pct=%.2f", ride_id, start_pct, end_pct)
+
+        finalize_fuel_usage(db=self.db, ride_id=ride_id, start_pct=start_pct, end_pct=end_pct)
+        logging.info("Finalized fuel usage for ride ID %s", ride_id)

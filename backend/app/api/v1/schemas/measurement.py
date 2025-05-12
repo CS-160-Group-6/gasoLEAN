@@ -9,6 +9,7 @@ class MeasurementCreate(BaseSettings):
     ride_id: int
     speed: float
     rpm: float
+    fuel_level_pct: float
 
 class MeasurementRead(BaseSettings):
     '''
@@ -20,6 +21,7 @@ class MeasurementRead(BaseSettings):
     timestamp: datetime.datetime
     speed: float
     rpm: float
+    fuel_level_pct: float
 
     class ConfigDict:
         from_attributes = True
