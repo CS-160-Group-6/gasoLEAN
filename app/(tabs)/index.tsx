@@ -1,6 +1,6 @@
 // Import at the top of your file
 import React, { useState, useEffect } from 'react';
-import { Platform, PermissionsAndroid, Button, View, Text, FlatList, SafeAreaView, Pressable, ScrollView, Image, Dimensions } from 'react-native';
+import { Platform, PermissionsAndroid, Button, View, Text, FlatList, SafeAreaView, Pressable, ScrollView, Image, Dimensions, TextInput } from 'react-native';
 
 import { LineChart } from "react-native-gifted-charts";
 import { icon } from '@/constants/icon'
@@ -11,13 +11,57 @@ import { car, trackingStats } from "../../data/dummy.js"
 //const manager = new BleManager();
 
 const Index = () => {
+  const [carData, setCarData] = useState(car);
   const [isTracking, setIsTracking] = useState(false);
   const toggleTracking = () => setIsTracking(prev => !prev);
+  const handleCarDataChange = (name, value) => {
+    setCarData(prev => ({ ...prev, [name]: value }));
+  }
 
   // data to track how mpg changes overtime?
   // each object = mpg at that given time. Add a label every 5 seconds
   const data = [{ value: 0, label: "0:00" }, { value: 1 }, { value: 4 }, { value: 9 }, { value: 16 }, { value: 25, label: "0:05" }]
 
+  // user hasn't provided their car info, show input form
+  if (Object.keys(car).length !== 3) {
+    return (
+      <SafeAreaView className='flex-1'>
+        <Text className="text-center font-bold border-t-2 mx-6 py-2">Enter Car Info</Text>
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="px-6">
+          <Image source={images.defaultCar} resizeMode='contain' className='h-44 w-5/6 mx-auto mt-3' />
+          <View className='mt-3 gap-6'>
+            <View>
+              <Text className='font-bold'>Make</Text>
+              <TextInput value={carData?.make || ""}
+                onChangeText={text => handleCarDataChange('make', text)}
+                className='border-b-2 py-1' />
+            </View>
+            <View>
+              <Text className='font-bold'>Model</Text>
+              <TextInput value={carData?.model || ""}
+                onChangeText={text => handleCarDataChange('model', text)}
+                className='border-b-2 py-1' />
+            </View>
+            <View>
+              <Text className='font-bold'>Year</Text>
+              <TextInput keyboardType="numeric" value={carData?.year || ""}
+                onChangeText={text => handleCarDataChange('year', text)}
+                className='border-b-2 py-1' />
+            </View>
+          </View>
+
+          {/* todo: store car info to backend (dummy.js in this case) */}
+          <Pressable onPress={toggleTracking} className='bg-black py-3 mt-8 rounded-xl'>
+            <Text className='text-center text-white text-xl font-semibold'>
+              Submit
+            </Text>
+          </Pressable>
+        </ScrollView>
+      </SafeAreaView>
+    )
+  }
+
+  // user provided their car info, show the entire tracking page
   return (
     <SafeAreaView className='flex-1'>
       <Text className="text-center font-bold border-t-2 mx-6 py-2">

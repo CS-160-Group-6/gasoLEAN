@@ -2,9 +2,9 @@
 // remove this once we have a backend + a way to connect to OBD2
 
 const car = {
-    make: "Toyota",
-    model: "Corolla",
-    year: 2025
+    // make: "Toyota",
+    // model: "Corolla",
+    // year: 2025
 }
 
 const trackingStats = {
