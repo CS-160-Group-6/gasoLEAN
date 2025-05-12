@@ -1,4 +1,5 @@
 import time, logging, obd
+from fastapi import HTTPException, status
 from elm import Elm
 
 _emulator: Elm | None = None
@@ -27,7 +28,7 @@ def connect_to_obd(use_emulator: bool = True) -> obd.OBD:
                 time.sleep(interval)
                 elapsed += interval
             if not _pty_path:
-                raise RuntimeError("Could not get PTY path from emulator")
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not get PTY path from emulator")
 
             _emulator.connect_serial()
             _emulator.scenario = "car"
@@ -36,9 +37,16 @@ def connect_to_obd(use_emulator: bool = True) -> obd.OBD:
         if _conn is None:
             logging.info("Opening python-OBD connection to %s", _pty_path)
             _conn = obd.OBD(_pty_path, fast=False)
+
             # wait until OBD reports CAR_CONNECTED
-            while _conn.status() != obd.OBDStatus.CAR_CONNECTED:
-                time.sleep(0.05)
+            timeout, interval, elapsed = 5.0, 0.1, 0.0
+            while _conn.status() != obd.OBDStatus.CAR_CONNECTED and elapsed < timeout:
+                logging.info("Waiting for ELM327-emulator to report CAR_CONNECTED")
+                elapsed += interval
+                time.sleep(interval)
+
+            if elapsed >= timeout:
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Timeout waiting for ELM327-emulator to report CAR_CONNECTED")
 
         return _conn
 

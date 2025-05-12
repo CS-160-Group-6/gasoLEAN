@@ -25,5 +25,5 @@ class RideRead(RideCreate):
     id: int
     score: float
 
-    class Config:
-        orm_mode = True
+    class ConfigDict:
+        from_attributes = True

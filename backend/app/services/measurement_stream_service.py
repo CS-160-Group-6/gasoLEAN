@@ -1,11 +1,12 @@
 from typing import Dict, Tuple
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 import threading, time, logging
 import obd
 
 from app.core.obd_integration import connect_to_obd
 from app.db.crud.measurement import create_measurement
+from app.db.crud.ride import get_ride
 from app.db.session import get_db
 from app.api.v1.schemas.measurement import MeasurementCreate
 
@@ -27,8 +28,18 @@ class MeasurementStreamService:
         :param ride_id: ID of the ride to associate with the measurements
         :param interval: Time interval in seconds between measurements
         '''
-        if ride_id in self.__class__._registry:
-            raise RuntimeError("Stream already running for this ride ID")
+
+        # Check if the OBD-II device is connected
+        if not self.conn.is_connected():
+            raise HTTPException(status_code=status.HTTP_428_PRECONDITION_REQUIRED, detail="OBD-II device is not connected")
+
+        # Check if the ride ID is already being streamed
+        elif ride_id in self.__class__._registry:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Stream already running for this ride ID: #{ride_id}")
+
+        # Check if the ride ID exists in the database
+        # The function get_ride() will raise an HTTPException if the ride ID does not exist
+        get_ride(ride_id=ride_id, db=self.db)
 
         stop_evt: threading.Event = threading.Event()
 
@@ -66,10 +77,10 @@ class MeasurementStreamService:
 
         :param ride_id: ID of the ride to stop streaming measurements for
         '''
-        detail: Tuple[threading.Thread, threading.Event] = self.__class__._registry.pop(ride_id, None)
-
-        if not detail:
-            raise RuntimeError(f"No active stream found for ride_id: {ride_id}")
+        try:
+            detail: Tuple[threading.Thread, threading.Event] = self.__class__._registry.pop(ride_id, None)
+        except KeyError:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"No active stream found for ride_id: {ride_id}")
 
         thread: threading.Thread = detail[0]
         stop_evt: threading.Event = detail[1]

@@ -21,5 +21,5 @@ class MeasurementRead(BaseSettings):
     speed: float
     rpm: float
 
-    class Config:
-        orm_mode = True
+    class ConfigDict:
+        from_attributes = True
