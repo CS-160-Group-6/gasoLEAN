@@ -23,7 +23,7 @@ const Index = () => {
   const data = [{ value: 0, label: "0:00" }, { value: 1 }, { value: 4 }, { value: 9 }, { value: 16 }, { value: 25, label: "0:05" }]
 
   // user hasn't provided their car info, show input form
-  if (Object.keys(car).length !== 3) {
+  if (Object.keys(car).length < 3) {
     return (
       <SafeAreaView className='flex-1'>
         <Text className="text-center font-bold border-t-2 mx-6 py-2">Enter Car Info</Text>

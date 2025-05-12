@@ -6,6 +6,7 @@ import leaf from "@/assets/icon/leaf.png"
 import tree from "@/assets/icon/tree.png"
 import arrowUp from "@/assets/icon/arrow-up.png"
 import speedometer from "@/assets/icon/speedometer.png"
+import locationPin from "@/assets/icon/location-pin.png"
 
 export const icon = {
     car,
@@ -15,5 +16,6 @@ export const icon = {
     leaf,
     tree,
     arrowUp,
-    speedometer
+    speedometer,
+    locationPin
 };
