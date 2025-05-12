@@ -17,6 +17,7 @@ from app.db.models import Base
 from app.api.v1.routers.health import router as health_router
 from app.api.v1.routers.rides import router as rides_router
 from app.api.v1.routers.measurement_stream import router as measurement_stream_router
+from app.api.v1.routers import profiles
 
 Base.metadata.create_all(bind=engine)
 
@@ -42,6 +43,12 @@ app.include_router(
     router=measurement_stream_router,
     prefix="/api/v1",
     tags=["measurement_stream"]
+)
+
+app.include_router(
+    router=profiles.router,
+    prefix="/api/v1",
+    tags=["profiles"],
 )
 
 if __name__ == "__main__":
