@@ -11,6 +11,8 @@ const trackingStats = {
     elapsed: "00:00:00",
     distance: 123.75,
     gallons: 12.34,
+    speed: 54,
+    fuelLeft: 32
 }
 
 export { car, trackingStats };
