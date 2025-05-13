@@ -7,6 +7,7 @@ import * as AuthSession from 'expo-auth-session'
 import * as Linking from "expo-linking";
 import { icon } from '@/constants/icon';
 import { images } from '@/constants/images';
+
 export const useWarmUpBrowser = () => {
     useEffect(() => {
         // Preloads the browser for Android devices to reduce authentication load time

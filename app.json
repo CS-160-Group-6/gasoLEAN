@@ -51,7 +51,7 @@
           "isBleRequired": true,
           "neverForLocation": true,
           "companionDeviceEnabled": false,
-          "bluetoothAlwaysPermission": "Allow BLE DEMO APP to connect to bluetooth devices"
+          "bluetoothAlwaysPermission": "Allow GasoLean to connect to bluetooth devices"
         }
       ]
     ],
