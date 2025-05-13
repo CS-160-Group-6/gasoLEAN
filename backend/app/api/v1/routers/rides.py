@@ -3,7 +3,6 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.db.models import Ride
 from app.db.crud import ride as ride_crud
 from app.api.v1.schemas.ride import RideCreate, RideRead
 

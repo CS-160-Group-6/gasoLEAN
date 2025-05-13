@@ -1,6 +1,6 @@
 import datetime
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, Float, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, Float, DateTime, ForeignKey, String
 
 Base = declarative_base()
 
@@ -18,9 +18,9 @@ class Profile(Base):
     __tablename__: str = "profiles"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    name = Column(str,    nullable=False)
-    epa_mpg = Column(Float,  nullable=False)
-    tank_capacity_gallons = Column(Float,  nullable=False)
+    name = Column(String, nullable=False)
+    epa_mpg = Column(Float, nullable=False)
+    tank_capacity_gallons = Column(Float, nullable=False)
 
 class Ride(Base):
     '''

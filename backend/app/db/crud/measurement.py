@@ -24,7 +24,12 @@ def list_measurements(ride_id: int, db: Session) -> list[Measurement]:
     :param db: SQLAlchemy session object
     :return: A list of measurements for the specified ride
     '''
-    return db.query(Measurement).filter(Measurement.ride_id == ride_id).order_by(Measurement.timestamp).all()
+    meas: Measurement | None = db.query(Measurement).filter(Measurement.ride_id == ride_id).order_by(Measurement.timestamp).all()
+
+    if not meas:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f'No measurements found for ride ID: #{ride_id}.')
+
+    return meas
 
 def finalize_fuel_usage(db: Session, ride_id: int, start_pct: float, end_pct: float) -> Ride:
     '''

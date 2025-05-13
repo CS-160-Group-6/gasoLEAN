@@ -43,7 +43,13 @@ def list_profiles(db: Session) -> list[Profile]:
     :param db: Database session
     :return: List of all profiles in the database
     """
-    return db.query(Profile).order_by(Profile.id).all()
+    profs: list[Profile] = db.query(Profile).order_by(Profile.id).all()
+
+    if not profs:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="No profiles found")
+
+    return profs
 
 def update_profile(db: Session, profile_id: int, payload: ProfileCreate) -> Profile:
     """
