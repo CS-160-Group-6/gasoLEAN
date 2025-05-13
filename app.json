@@ -4,7 +4,7 @@
     "slug": "GasoLean",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/gasoLean_Logo.png",
     "scheme": "gasoLean",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -14,7 +14,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/gasolLean_Neon.png",
         "backgroundColor": "#ffffff",
         "bundleIdentifier": "com.cs160.gasoLean"
       },
@@ -31,7 +31,11 @@
     "web": {
       "bundler": "metro",
       "output": "server",
+<<<<<<< HEAD
       "favicon": "./assets/images/adaptive-icon.png"
+=======
+      "favicon": "./assets/images/gasoLean_Logo.png"
+>>>>>>> 6bd49c40 (Fixed icon references)
     },
     "plugins": [
       "expo-router",
