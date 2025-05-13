@@ -18,7 +18,6 @@ const Profile = () => {
   const handleSignOut = async () => {
     try {
       await signOut();
-      // router.replace('../(auth)/sign-in'); // Redirect to sign-in screen after sign-out (don't need anymore?)
     } catch (err) {
       console.error(JSON.stringify(err, null, 2));
     }

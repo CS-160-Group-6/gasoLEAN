@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "GasoLean",
-    "slug": "GasoLean",
+    "slug": "gasolean",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -19,9 +19,6 @@
         "bundleIdentifier": "com.cs160.gasoLean"
       },
       "permissions": [
-        "android.permission.BLUETOOTH",
-        "android.permission.BLUETOOTH_ADMIN",
-        "android.permission.BLUETOOTH_CONNECT",
         "android.permission.BLUETOOTH",
         "android.permission.BLUETOOTH_ADMIN",
         "android.permission.BLUETOOTH_CONNECT"
@@ -63,10 +60,10 @@
         "origin": false
       },
       "eas": {
-        "projectId": "835dde79-b1c6-48c4-9d23-caccc4b2bfd3"
+        "projectId": "0a635a02-4a9f-4195-a3ee-9802f568ac56"
       }
     },
-    "owner": "selamatpagi",
+    "owner": "jyun8931",
     "runtimeVersion": {
       "policy": "appVersion"
     },

@@ -3,7 +3,15 @@ import DisconnectedState from "@/components/bluetooth/disconnected-state";
 import { PeripheralServices } from "@/types/bluetooth";
 import { handleAndroidPermissions } from "@/utils/permissions";
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Platform, Alert, Linking } from "react-native";
+import { View, Text, StyleSheet, Platform, Alert, Linking, Image, Dimensions, ScrollView, Pressable } from "react-native";
+import { car } from "@/data/dummy.js"
+import CarAddForm from '@/components/carAddForm';
+import CarDisplay from '@/components/carDisplay';
+import CarStatsRow from '@/components/carStatsRow';
+import CarStatsSide from '@/components/carStatsSide';
+import { LineChart } from "react-native-gifted-charts";
+import { icon } from '@/constants/icon'
+import { images } from '@/constants/images';
 import BleManager, {
   BleDisconnectPeripheralEvent,
   BleManagerDidUpdateValueForCharacteristicEvent,
@@ -13,8 +21,8 @@ import BleManager, {
   Peripheral,
 } from "react-native-ble-manager";
 
-console.log("ConnectedState typeof:", typeof ConnectedState); // should be "function"
-console.log("DisconnectedState typeof:", typeof DisconnectedState); // should be "function"
+// console.log("ConnectedState typeof:", typeof ConnectedState); // should be "function"
+// console.log("DisconnectedState typeof:", typeof DisconnectedState); // should be "function"
 
 declare module "react-native-ble-manager" {
   interface Peripheral {
@@ -23,6 +31,7 @@ declare module "react-native-ble-manager" {
   }
 }
 
+//time to scan for devices
 const SECONDS_TO_SCAN_FOR = 5;
 const SERVICE_UUIDS: string[] = [];
 const ALLOW_DUPLICATES = true;
@@ -40,6 +49,53 @@ const BluetoothDemoScreen: React.FC = () => {
   const [bleService, setBleService] = useState<PeripheralServices | undefined>(
     undefined
   );
+  const [isTracking, setIsTracking] = useState(false);
+  const [trackingStats, setTrackingStats] = useState({
+    elapsed: "00:00:00",
+    distance: 123.75,
+    gallons: 12.34,
+    speed: 54,
+    fuelLeft: 32
+  })
+
+  const toggleTracking = () => setIsTracking(prev => !prev);
+
+  function parseOBDResponse(text: string) {
+    const lines = text.split("\r").map(line => line.trim()).filter(Boolean);
+
+    for (let line of lines) {
+      if (line.startsWith("41 ")) {
+        const parts = line.split(" ");
+        const pid = parts[1];
+        const A = parts[2];
+
+        switch (pid) {
+          case "0D": // speed
+            const speed = parseInt(A, 16);
+            console.log("Speed (km/h):", speed);
+            return { pid, value: speed };
+
+          case "2F": // fuel %
+            const fuel = (parseInt(A, 16) * 100) / 255;
+            console.log("Fuel Level (%):", fuel.toFixed(1));
+            return { pid, value: fuel };
+
+          // case "0C": // RPM, needs A and B
+          //   const B = parts[3];
+          //   const rpm = ((parseInt(A, 16) * 256) + parseInt(B, 16)) / 4;
+          //   console.log("RPM:", rpm);
+          //   return { pid, value: rpm };
+
+          // case "05": // coolant temp
+          //   const temp = parseInt(A, 16) - 40;
+          //   console.log("Coolant Temp (°C):", temp);
+          //   return { pid, value: temp };
+        }
+      }
+    }
+
+    return null;
+  }
 
   useEffect(() => {
     BleManager.start({ showAlert: false })
@@ -58,6 +114,7 @@ const BluetoothDemoScreen: React.FC = () => {
       BleManager.onDisconnectPeripheral(handleDisconnectedPeripheral),
     ];
 
+
     handleAndroidPermissions();
 
     return () => {
@@ -68,27 +125,63 @@ const BluetoothDemoScreen: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+
+    if (isTracking && bleService) {
+      intervalId = setInterval(() => {
+        sendOBDCommand("010D"); // Speed
+
+        setTimeout(() => {
+          sendOBDCommand("012F"); // Fuel Level
+        }, 400); // wait 400ms
+
+        // setTimeout(() => {
+        //   sendOBDCommand("010C"); // RPM
+        // }, 800); // wait another 400ms
+
+        // setTimeout(() => {
+        //   sendOBDCommand("0105"); // Coolant Temp
+        // }, 1200); // wait another 400ms
+      }, 5000);
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isTracking, bleService]);
+
+  useEffect(() => {
     const handleNotify = (
       event: BleManagerDidUpdateValueForCharacteristicEvent
     ) => {
       const raw = event.value;
       const text = new TextDecoder().decode(Uint8Array.from(raw));
-      console.log("OBD-II Response:", text);
 
-      if (text.includes("41 0D")) {
-        const parts = text.trim().split(" ");
-        const hexSpeed = parts[2];
-        const speed = parseInt(hexSpeed, 16);
-        console.log("Vehicle Speed:", speed, "km/h");
+      console.log("OBD-II Response:", text);
+      const parsedData = parseOBDResponse(text);
+      if (parsedData) {
+        // console.log("Parsed Data:", parsedData);
+        switch (parsedData.pid) {
+          case "0D": // Speed
+            setTrackingStats(prev => ({ ...prev, speed: parsedData.value }))
+            break;
+          case "2F": // Fuel Level
+            setTrackingStats(prev => ({ ...prev, fuelLeft: parseFloat(parsedData.value.toFixed(2)) }))
+            break;
+          // case "0C": // RPM
+          //   trackingStats.rpm = parsedData.value;
+          //   break;
+          // case "05": // Coolant Temp
+          //   trackingStats.coolantTemp = parsedData.value;
+          //   break;
+        }
       }
     };
 
     const listener = BleManager.onDidUpdateValueForCharacteristic(handleNotify);
-
-    return () => {
-      listener.remove(); // clean up on unmount
-    };
+    return () => listener.remove();
   }, []);
+
 
 
   const handleDisconnectedPeripheral = (
@@ -308,12 +401,9 @@ const BluetoothDemoScreen: React.FC = () => {
     }
   };
 
-  const sendSpeedRequest = async () => {
+  const sendOBDCommand = async (command: string) => {
     if (!bleService) return;
-
-    const command = "010D\r"; // OBD-II command to read speed
-    const data = Array.from(new TextEncoder().encode(command));
-
+    const data = Array.from(new TextEncoder().encode(command + "\r"));
     try {
       await BleManager.write(
         bleService.peripheralId,
@@ -322,9 +412,9 @@ const BluetoothDemoScreen: React.FC = () => {
         data,
         255
       );
-      console.log("Sent speed request:", command);
+      console.log("Sent command:", command);
     } catch (error) {
-      console.error("Failed to send speed request:", error);
+      console.error("Failed to send command:", command, error);
     }
   };
 
@@ -353,6 +443,35 @@ const BluetoothDemoScreen: React.FC = () => {
     }
   };
 
+
+
+  const ecoImpactStats = {
+    "CO2 emission saved (lb)": <><Image source={icon.leaf} className='w-4 h-4' /> 1.2</>,
+    "Trees \nplanted": <><Image source={icon.tree} className='w-4 h-4' /> 4</>,
+    "Improved avg. fuel rate (mpg)": <><Image source={icon.arrowUp} className='w-4 h-4' /> 1.23</>
+  };
+
+  const savingStats = {
+    "Fuel \n(gallons)": 2.35,
+    "Dollars ($)": 9999.5
+  };
+
+  const liveTrackingStats = {
+    "Current \nspeed (mph)": trackingStats.speed,
+    "Fuel %": trackingStats.fuelLeft
+  }
+
+  const tripSummaryStats = {
+    "Distance travelled (mi)": trackingStats.distance,
+    "Fuel consumed (gallons)": trackingStats.gallons,
+    "Average fuel rate (mpg)": (trackingStats.distance / trackingStats.gallons).toFixed(2)
+  }
+
+  // data to track how mpg changes overtime?
+  // each object = mpg at that given time. Add a label every 5 seconds
+  const data = [{ value: 0, label: "0:00" }, { value: 1 }, { value: 4 }, { value: 9 }, { value: 16 }, { value: 25, label: "0:05" }];
+
+
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Bluetooth Demo</Text>
@@ -365,12 +484,60 @@ const BluetoothDemoScreen: React.FC = () => {
         />
       ) : (
         bleService && (
-          <ConnectedState
-            onRead={sendSpeedRequest}
-            onWrite={write}
-            bleService={bleService}
-            onDisconnect={disconnectPeripheral}
-          />
+          <>
+
+            <Text className="text-center font-bold border-t-2 mx-6 py-2">
+              {isTracking ? "Tracking " : "Track"}
+              {isTracking && <View className='w-3 h-3 rounded-full bg-red-500' />}
+            </Text>
+            <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="px-6">
+              <ConnectedState
+                onRead={read}
+                onWrite={write}
+                bleService={bleService}
+                onDisconnect={disconnectPeripheral}
+              />
+              <CarDisplay car={car} />
+
+              {isTracking &&  //display tracking stats
+                <View className='w-5/6 mx-auto mt-2 overflow-hidden'>
+                  {/* time elapsed */}
+                  <View className='flex-row items-center mx-auto gap-4'>
+                    <Text class Name='mt-0.5'>Time elapsed</Text>
+                    <Text className='text-2xl font-semibold'>{trackingStats.elapsed}</Text>
+                  </View>
+                  {/* speedometer image + car speed & fuel % */}
+                  <CarStatsSide containerStyle="flex-row gap-10 items-center mx-8 mt-4"
+                    stats={liveTrackingStats}
+                    image={<Image source={icon.speedometer} resizeMode='contain' className='w-20 h-20' />}
+                  />
+                  {/* distance, fuel, mpg */}
+                  <CarStatsRow stats={tripSummaryStats} />
+                  {/* <Text className='text-center mt-6 mb-2'>Mpg over time</Text> */}
+                  <LineChart data={data} width={Dimensions.get('window').width} height={125} noOfSections={4} spacing={40} xAxisLabelTextStyle={{ fontSize: 10 }} />
+                </View>}
+
+              {/* tracking button */}
+              <Pressable onPress={toggleTracking} className='bg-black py-3 mt-4 rounded-xl'>
+                <Text className='text-center text-white text-xl font-semibold'>
+                  {isTracking ? "Stop" : "Start"} tracking
+                </Text>
+              </Pressable>
+
+              {!isTracking &&  //display saving and eco impact stats
+                <View className='w-5/6 mx-auto mt-6'>
+                  <Text className='text-center'>Since using this app, you've saved</Text>
+                  {/* gas station image + fuel & money saved */}
+                  <CarStatsSide containerStyle="flex-row gap-6 items-center"
+                    stats={savingStats}
+                    image={<Image source={icon.gasStation} resizeMode='contain' className='w-32 h-32' />}
+                  />
+                  {/* environmental friendly stats */}
+                  <Text className='text-center mb-2'>This is equivalent to</Text>
+                  <CarStatsRow stats={ecoImpactStats} />
+                </View>}
+            </ScrollView>
+          </>
         )
 
       )}

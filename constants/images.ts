@@ -1,7 +1,6 @@
 import highlight from "@/assets/images/highlight.png";
-import gasoLean from "@/assets/images/gasoLean_Logo.png"
+import defaultCar from "@/assets/images/defaultCar.png";
 
 export const images = {
-    highlight,
-    gasoLean,
+    highlight, defaultCar
 };
