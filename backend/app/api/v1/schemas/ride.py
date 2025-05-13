@@ -1,29 +1,25 @@
 from datetime import datetime
-from pydantic_settings import BaseSettings
+from pydantic import BaseModel, Field
 
-class RideCreate(BaseSettings):
-    '''
-    Schema for creating a new ride entry.
-    This schema is used to validate the data when creating a new ride entry in the database. It must be in this format that
-    the frontend will send the data to the backend.
-    '''
-    user_id: int
+class RideBase(BaseModel):
+    user_id: int = Field(..., description="The ID of the user/profile")
     start_time: datetime
     end_time: datetime
     distance: float
-    avg_speed: float # Average speed in km/h
-    max_speed: float # Maximum speed in km/h
-    avg_rpm: float # Average revolutions per minute
-    max_rpm: float # Maximum revolutions per minute
-    duration: int # Duration in seconds
+    avg_speed: float
+    max_speed: float
+    avg_rpm: float
+    max_rpm: float
+    duration: int
 
-class RideRead(RideCreate):
-    '''
-    Extends the RideCreate schema to include the ride ID and score.
-    Allows SQLAlchemy to return model instances directly.
-    '''
+class RideCreate(RideBase):
+    """Nothing extra—use user_id to look up profile for epa_mpg & capacity."""
+
+class RideRead(RideBase):
     id: int
-    score: float
+    epa_mpg: float = Field(..., description="User\'s EPA MPG at time of ride")
+    actual_used_gal: float = Field(..., description="Gallons actually used")
+    fuel_saved_gal: float = Field(..., description="Gallons saved vs EPA baseline")
 
     class ConfigDict:
         from_attributes = True

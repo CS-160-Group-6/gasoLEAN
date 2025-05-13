@@ -2,11 +2,11 @@ from typing import List
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.db.models import Ride
-from app.core.scoring import compute_score
+from app.db.models import Ride, Profile
 from app.api.v1.schemas.ride import RideCreate
+from app.core.scoring import compute_score  # your existing score fn
 
-def create_ride(payload: RideCreate, db: Session) -> Ride:
+def create_ride(db: Session, payload: RideCreate) -> Ride:
     '''
     Create a new ride entry in the database.
     This endpoint is used to create a new ride entry in the database. It takes a RideCreate schema as input and returns
@@ -16,23 +16,47 @@ def create_ride(payload: RideCreate, db: Session) -> Ride:
     :param db: Database session
     :return: Created Ride entry
     '''
+    # Look up user’s profile for EPA & capacity
+    profile: Profile | None = db.query(Profile).filter(Profile.id == payload.user_id).first()
+    if not profile:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Profile #{payload.user_id} not found")
 
-    # Calculate score
-    score: float = compute_score(distance=payload.distance,
-                  avg_speed=payload.avg_speed,
-                  max_speed=payload.max_speed,
-                  avg_rpm=payload.avg_rpm,
-                  max_rpm=payload.max_rpm,
-                  duration=payload.duration)
+    # Compute actual gallons used via start/end fuel_level_pct measurements
+    #    (assumes you stored first/last measurement fuel_level_pct elsewhere)
+    start_pct = getattr(payload, "start_fuel_pct", None)
+    end_pct   = getattr(payload, "end_fuel_pct", None)
+    if start_pct is None or end_pct is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Missing start_fuel_pct or end_fuel_pct")
+    actual_used = (start_pct - end_pct) * profile.tank_capacity_gallons
 
-    # Save to database
-    # Ride(**payload.dict(), score=score) works because
-    # Ride.__init__ accepts 'user_id', 'start_time', …, 'duration', and 'score'. The __init__ method is given by SQLAlchemy
-    ride: Ride = Ride(**payload.dict(), score=score)
+    # EPA-baseline gallons = distance / epa_mpg
+    expected_used = payload.distance / profile.epa_mpg
+
+    # Fuel saved
+    saved = expected_used - actual_used
+
+    # Score as before
+    score: float = compute_score(
+        distance=payload.distance,
+        avg_speed=payload.avg_speed,
+        max_speed=payload.max_speed,
+        avg_rpm=payload.avg_rpm,
+        max_rpm=payload.max_rpm,
+        duration=payload.duration,
+    )
+
+    ride = Ride(
+        **payload.dict(),
+        epa_mpg=profile.epa_mpg,
+        actual_used_gal=actual_used,
+        fuel_saved_gal=saved,
+        score=score,
+    )
     db.add(ride)
     db.commit()
     db.refresh(ride)
-
     return ride
 
 def list_rides(db: Session) -> List[Ride]:
@@ -43,13 +67,11 @@ def list_rides(db: Session) -> List[Ride]:
     :return: List of all rides in the database
     '''
     rides: List[Ride] = db.query(Ride).order_by(Ride.start_time.desc()).all()
-
     if not rides:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No rides found")
-
     return rides
 
-def get_ride(ride_id: int, db: Session) -> Ride:
+def get_ride(db: Session, ride_id: int) -> Ride:
     '''
     Get a ride by its ID.
 
@@ -57,14 +79,13 @@ def get_ride(ride_id: int, db: Session) -> Ride:
     :param db: Database session
     :return: Ride entry with the specified ID
     '''
-    ride: Ride = db.query(Ride).filter(Ride.id == ride_id).first()
-
+    ride: Ride | None = db.query(Ride).filter(Ride.id == ride_id).first()
     if not ride:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Ride #{ride_id} not found")
-
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Ride #{ride_id} not found")
     return ride
 
-def update_ride(ride_id: int, payload: RideCreate, db: Session) -> Ride:
+def update_ride(db: Session, ride_id: int, payload: RideCreate) -> Ride:
     '''
     Update a ride by its ID.
 
@@ -73,47 +94,41 @@ def update_ride(ride_id: int, payload: RideCreate, db: Session) -> Ride:
     :param db: Database session
     :return: Updated Ride entry
     '''
-    ride: Ride = db.query(Ride).filter(Ride.id == ride_id).first()
-    if not ride:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Ride #{ride_id} not found")
+    ride: Ride = get_ride(db=db, ride_id=ride_id)
 
-    score: float = compute_score(distance=payload.distance,
-                          avg_speed=payload.avg_speed,
-                          max_speed=payload.max_speed,
-                          avg_rpm=payload.avg_rpm,
-                          max_rpm=payload.max_rpm,
-                          duration=payload.duration)
+    profile: Profile | None = db.query(Profile).filter(Profile.id == payload.user_id).first()
+    if not profile:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Profile #{payload.user_id} not found")
 
-    db.query(Ride).filter(Ride.id == ride_id).update(values={
-        "user_id": payload.user_id,
-        "start_time": payload.start_time,
-        "end_time": payload.end_time,
-        "distance": payload.distance,
-        "avg_speed": payload.avg_speed,
-        "max_speed": payload.max_speed,
-        "avg_rpm": payload.avg_rpm,
-        "max_rpm": payload.max_rpm,
-        "duration": payload.duration,
-        "score": score
+    # same fuel calcs as in create
+    start_pct = getattr(payload, "start_fuel_pct", None)
+    end_pct   = getattr(payload, "end_fuel_pct", None)
+    actual_used = (start_pct - end_pct) * profile.tank_capacity_gallons
+    expected_used = payload.distance / profile.epa_mpg
+    saved = expected_used - actual_used
+
+    score = compute_score(
+        distance=payload.distance,
+        avg_speed=payload.avg_speed,
+        max_speed=payload.max_speed,
+        avg_rpm=payload.avg_rpm,
+        max_rpm=payload.max_rpm,
+        duration=payload.duration,
+    )
+
+    db.query(Ride).filter(Ride.id == ride_id).update({
+        **payload.dict(),
+        "epa_mpg": profile.epa_mpg,
+        "actual_used_gal": actual_used,
+        "fuel_saved_gal": saved,
+        "score": score,
     })
-
     db.commit()
     db.refresh(ride)
     return ride
 
-    # Another way to do the above
-    """ ride.user_id = payload.user_id
-    ride.start_time = payload.start_time
-    ride.end_time = payload.end_time
-    ride.distance = payload.distance
-    ride.avg_speed = payload.avg_speed
-    ride.max_speed = payload.max_speed
-    ride.avg_rpm = payload.avg_rpm
-    ride.max_rpm = payload.max_rpm
-    ride.duration = payload.duration
-    ride.score = score """
-
-def delete_ride(ride_id: int, db: Session) -> None:
+def delete_ride(db: Session, ride_id: int) -> None:
     '''
     Delete a ride by its ID.
 

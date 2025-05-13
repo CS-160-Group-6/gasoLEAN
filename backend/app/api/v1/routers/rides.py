@@ -10,7 +10,7 @@ from app.api.v1.schemas.ride import RideCreate, RideRead
 router = APIRouter()
 
 @router.post(path="/rides", response_model=RideRead, status_code=status.HTTP_201_CREATED)
-def create_ride(payload: RideCreate, db: Session = Depends(get_db)) -> Ride:
+def create_ride(payload: RideCreate, db: Session = Depends(get_db)) -> RideRead:
     '''
     Create a new ride entry in the database.
     This endpoint is used to create a new ride entry in the database. It takes a RideCreate schema as input and returns
@@ -23,7 +23,7 @@ def create_ride(payload: RideCreate, db: Session = Depends(get_db)) -> Ride:
     return ride_crud.create_ride(payload=payload, db=db)
 
 @router.get(path="/rides", response_model=list[RideRead], status_code=status.HTTP_200_OK)
-def list_rides(db: Session = Depends(get_db)) -> List[Ride]:
+def list_rides(db: Session = Depends(get_db)) -> List[RideRead]:
     '''
     List all rides in the database. Use a GET request to retrieve all rides.
 
@@ -33,7 +33,7 @@ def list_rides(db: Session = Depends(get_db)) -> List[Ride]:
     return ride_crud.list_rides(db=db)
 
 @router.get(path="/rides/{ride_id}", response_model=RideRead, status_code=status.HTTP_200_OK)
-def get_ride(ride_id: int, db: Session = Depends(get_db)) -> Ride:
+def get_ride(ride_id: int, db: Session = Depends(get_db)) -> RideRead:
     '''
     Get a ride by its ID. Use a GET request to retrieve a ride by its ID.
 
@@ -44,7 +44,7 @@ def get_ride(ride_id: int, db: Session = Depends(get_db)) -> Ride:
     return ride_crud.get_ride(ride_id=ride_id, db=db)
 
 @router.put(path="/rides/{ride_id}", response_model=RideRead, status_code=status.HTTP_200_OK)
-def update_ride(ride_id: int, payload: RideCreate, db: Session = Depends(get_db)) -> Ride:
+def update_ride(ride_id: int, payload: RideCreate, db: Session = Depends(get_db)) -> RideRead:
     '''
     Update a ride by its ID. Use a PUT request to update a ride by its ID.
 
