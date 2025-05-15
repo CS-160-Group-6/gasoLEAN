@@ -18,6 +18,7 @@ from app.db.models import Base
 from app.api.v1.routers.health import router as health_router
 from app.api.v1.routers.rides import router as rides_router
 from app.api.v1.routers.measurement_stream import router as measurement_stream_router
+from app.api.v1.routers.obd_connection import router as obd_connection_router
 from app.api.v1.routers import profiles
 
 Base.metadata.create_all(bind=engine)
@@ -58,6 +59,12 @@ app.include_router(
     router=profiles.router,
     prefix="/api/v1",
     tags=["profiles"],
+)
+
+app.include_router(
+    router=obd_connection_router,
+    prefix="/api/v1",
+    tags=["obd_connection"]
 )
 
 if __name__ == "__main__":

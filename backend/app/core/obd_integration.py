@@ -9,6 +9,8 @@ _pty_path: str | None = None
 def connect_to_obd(use_emulator: bool = True) -> obd.OBD:
     global _emulator, _conn, _pty_path
 
+    _conn = None
+
     if use_emulator:
         if _emulator is None:
             logging.info("Starting ELM327-emulator…")
@@ -51,6 +53,10 @@ def connect_to_obd(use_emulator: bool = True) -> obd.OBD:
         return _conn
 
     else:
+        logging.info("Using real OBD-II device…")
         if _conn is None:
             _conn = obd.OBD(fast=False, timeout=30)  # Auto-scan for a real port
+
+        if not _conn.is_connected():
+                raise HTTPException(status_code=status.HTTP_428_PRECONDITION_REQUIRED, detail="Timeout waiting for OBD-II device to report CAR_CONNECTED")
         return _conn

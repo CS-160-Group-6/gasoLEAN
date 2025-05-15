@@ -1,12 +1,12 @@
 from typing import Any, Dict, Tuple
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Query, status
 from sqlalchemy import Float
 from sqlalchemy.orm import Session
 import threading, time, logging
 import obd
 from datetime import datetime
 
-from app.core.obd_integration import connect_to_obd
+from app.api.v1.routers.obd_connection import connect_to_obd
 from app.db.crud.measurement import create_measurement, finalize_fuel_usage, list_measurements
 from app.db.crud.ride import create_ride, update_distance, get_ride, update_ride
 from app.db.crud.profile import get_profile
@@ -27,12 +27,12 @@ class MeasurementStreamService:
     # Maps ride_id → (thread, stop_event, initial_distance, start_time)
     _registry: Dict[int, Tuple[threading.Thread, threading.Event, float, datetime]] = {}
 
-    def __init__(self, db: Session    = Depends(get_db), conn: obd.OBD = Depends(connect_to_obd)) -> None:
+    def __init__(self, db: Session = Depends(get_db)) -> None:
         self.db: Session = db
-        self.conn: obd.OBD = conn
+        self.conn: obd.OBD = None
         self._initial_distance = 0.0
 
-    def start_stream(self, user_id: int, interval: float = 1.0) -> int:
+    def start_stream(self, user_id: int, interval: float = 1.0, use_emulator: bool = True) -> int:
         """
         Creates a Ride record, captures initial distance,
         then begins recording measurements every `interval` seconds.
@@ -42,6 +42,8 @@ class MeasurementStreamService:
         :param interval: Time interval (in seconds) between measurements
         :return: The ID of the created Ride record
         """
+        self.conn = connect_to_obd(use_emulator=use_emulator, internal=True)
+
         if (not self.conn.is_connected()):
             raise HTTPException(
                 status_code=status.HTTP_428_PRECONDITION_REQUIRED,

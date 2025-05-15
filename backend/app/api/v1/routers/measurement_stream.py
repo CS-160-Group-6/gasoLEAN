@@ -14,7 +14,7 @@ def start_trip(user_id: int = Query(gt=0),
     interval: float = Query(
         1.0,
         gt=0.0),
-    svc: MeasurementStreamService = Depends()) -> Any:
+    svc: MeasurementStreamService = Depends(), use_emulator: bool = Query(default=True)) -> Any:
     """
     Creates a Ride record for `user_id`, begins streaming OBD-II data,
     and returns the new ride_id along with the polling interval.
@@ -24,7 +24,7 @@ def start_trip(user_id: int = Query(gt=0),
     :param svc: MeasurementStreamService instance
     :return: A dictionary containing the status, ride_id, and interval.
     """
-    ride_id = svc.start_stream(user_id=user_id, interval=interval)
+    ride_id = svc.start_stream(user_id=user_id, interval=interval, use_emulator=use_emulator)
     return {"status": "Started Trip", "ride_id": ride_id, "interval": interval}
 
 @router.post(path="/measurements/{ride_id}/stop", status_code=status.HTTP_200_OK)
