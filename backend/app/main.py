@@ -20,6 +20,7 @@ from app.api.v1.routers.rides import router as rides_router
 from app.api.v1.routers.measurement_stream import router as measurement_stream_router
 from app.api.v1.routers.obd_connection import router as obd_connection_router
 from app.api.v1.routers import profiles
+from app.api.v1.routers import vehicle
 
 Base.metadata.create_all(bind=engine)
 
@@ -59,6 +60,12 @@ app.include_router(
     router=profiles.router,
     prefix="/api/v1",
     tags=["profiles"],
+)
+
+app.include_router(
+    router=vehicle.router,
+    prefix="/api/v1",
+    tags=["vehicle"]
 )
 
 app.include_router(

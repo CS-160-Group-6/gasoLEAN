@@ -1,6 +1,7 @@
 import time, logging, obd
 from fastapi import HTTPException, status
 from elm import Elm
+from app.vinner.decoder import decode_vin, VINDecoderError
 
 _emulator: Elm | None = None
 _conn: obd.OBD | None = None
@@ -60,3 +61,44 @@ def connect_to_obd(use_emulator: bool = True) -> obd.OBD:
         if not _conn.is_connected():
                 raise HTTPException(status_code=status.HTTP_428_PRECONDITION_REQUIRED, detail="Timeout waiting for OBD-II device to report CAR_CONNECTED")
         return _conn
+
+def get_decoded_vehicle_info() -> dict:
+    """
+    Uses the active OBD connection (real or emulator) to retrieve and decode VIN.
+
+    Returns:
+        dict: Decoded vehicle details (Make, Model, Year, Type)
+
+    Raises:
+        HTTPException: If OBD or NHTSA decoding fails
+    """
+    try:
+        conn = connect_to_obd(use_emulator=True)
+
+        vin_cmd = obd.commands.VIN
+        response = conn.query(vin_cmd)
+
+        if response.is_null():
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="VIN retrieval failed from OBD"
+            )
+
+        vin = str(response.value).strip()
+        logging.info(f"VIN retrieved from OBD: {vin}")
+
+        try:
+            vehicle_info = decode_vin(vin)
+            logging.info(f"Vehicle info decoded: {vehicle_info}")
+            return vehicle_info
+        except VINDecoderError as e:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"NHTSA decoding failed: {str(e)}"
+            )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"VIN processing failed: {str(e)}"
+        )
