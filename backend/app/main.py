@@ -9,6 +9,7 @@ if PARENT_DIR not in sys.path:
     sys.path.append(PARENT_DIR)
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 from app.config import settings
@@ -25,6 +26,14 @@ app = FastAPI(
     title="gasoLEAN API",
     version="0.0.1",
     openapi_url="/openapi.json"
+)
+
+app.add_middleware(
+    middleware_class=CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(
