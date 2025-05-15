@@ -19,6 +19,7 @@ from app.api.v1.routers.health import router as health_router
 from app.api.v1.routers.rides import router as rides_router
 from app.api.v1.routers.measurement_stream import router as measurement_stream_router
 from app.api.v1.routers import profiles
+from app.api.v1.routers import vehicle
 
 Base.metadata.create_all(bind=engine)
 
@@ -60,6 +61,12 @@ app.include_router(
     tags=["profiles"],
 )
 
+app.include_router(
+    router=vehicle.router,
+    prefix="/api/v1",
+    tags=["vehicle"]
+)
+
 if __name__ == "__main__":
     uvicorn.run(
         app="app.main:app",
@@ -67,3 +74,4 @@ if __name__ == "__main__":
         port=8000,
         reload=True
     )
+
