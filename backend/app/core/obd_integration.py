@@ -38,7 +38,7 @@ def connect_to_obd(use_emulator: bool = True) -> obd.OBD:
             logging.info("Opening python-OBD connection to %s", _pty_path)
             _conn = obd.OBD(_pty_path, fast=False)
 
-            # wait until OBD reports CAR_CONNECTED
+            # Wait until OBD reports CAR_CONNECTED
             timeout, interval, elapsed = 5.0, 0.1, 0.0
             while _conn.status() != obd.OBDStatus.CAR_CONNECTED and elapsed < timeout:
                 logging.info("Waiting for ELM327-emulator to report CAR_CONNECTED")
@@ -52,5 +52,5 @@ def connect_to_obd(use_emulator: bool = True) -> obd.OBD:
 
     else:
         if _conn is None:
-            _conn = obd.OBD(fast=False)  # auto-scan for a real port
+            _conn = obd.OBD(fast=False, timeout=30)  # Auto-scan for a real port
         return _conn

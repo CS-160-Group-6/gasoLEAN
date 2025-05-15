@@ -85,6 +85,17 @@ def get_ride(db: Session, ride_id: int) -> Ride:
                             detail=f"Ride #{ride_id} not found")
     return ride
 
+def get_rides_by_user(db: Session, user_id: int) -> List[Ride]:
+    """
+    Return all Ride rows belonging to a given user/profile.
+
+    :param db: Database session
+    :param user_id: ID of the user whose rides to retrieve
+    :return: List of rides for the specified user
+    """
+    return db.query(Ride).filter(Ride.user_id == user_id).order_by(Ride.start_time.desc()).all()
+
+
 def update_ride(db: Session, ride_id: int, payload: RideCreate) -> Ride:
     '''
     Update a ride by its ID.
@@ -145,3 +156,24 @@ def delete_ride(db: Session, ride_id: int) -> None:
     # Delete the ride
     db.delete(ride)
     db.commit()
+
+def update_distance(*, db: Session, ride_id: int, distance: float) -> Ride:
+    """
+    Update the total distance traveled for a ride (PID 31 displacement).
+    This is used to update the distance after a ride has been completed.
+
+    :param db: Database session
+    :param ride_id: ID of the ride to update
+    :param distance: New distance value
+    :return: Updated Ride entry
+    """
+    ride: Ride | None = db.query(Ride).filter(Ride.id == ride_id).first()
+    if (not ride):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Ride #{ride_id} not found"
+        )
+    ride.distance = distance
+    db.commit()
+    db.refresh(ride)
+    return ride
