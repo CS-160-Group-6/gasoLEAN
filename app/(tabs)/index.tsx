@@ -20,6 +20,14 @@ import BleManager, {
   BleScanMode,
   Peripheral,
 } from "react-native-ble-manager";
+import { addDataPoint, startTrip } from '@/firebase/trips';
+import { addDoc, collection } from "firebase/firestore";
+import { useAuth } from "@clerk/clerk-expo";
+import { db } from "@/firebase/config";
+
+
+
+
 
 // console.log("ConnectedState typeof:", typeof ConnectedState); // should be "function"
 // console.log("DisconnectedState typeof:", typeof DisconnectedState); // should be "function"
@@ -57,8 +65,20 @@ const BluetoothDemoScreen: React.FC = () => {
     speed: 54,
     fuelLeft: 32
   })
+  const [tripId, setTripId] = useState<string | null>(null);
+  const { user } = useAuth();
 
-  const toggleTracking = () => setIsTracking(prev => !prev);
+  const toggleTracking = async () => {
+    if (!isTracking) {
+      // START TRIP
+      const newTripId = await startTrip(user.uid);
+      setTripId(newTripId);
+    } else {
+      // STOP TRIP - you can add endTrip(user.uid, tripId) if you want
+      setTripId(null);
+    }
+    setIsTracking(prev => !prev);
+  };
 
   function parseOBDResponse(text: string) {
     const lines = text.split("\r").map(line => line.trim()).filter(Boolean);
@@ -79,6 +99,11 @@ const BluetoothDemoScreen: React.FC = () => {
             const fuel = (parseInt(A, 16) * 100) / 255;
             console.log("Fuel Level (%):", fuel.toFixed(1));
             return { pid, value: fuel };
+
+          case "31": // distance
+            const distance = (parseInt(A, 16) * 256) + parseInt(parts[3], 16);
+            console.log("Distance (km):", distance);
+            return { pid, value: distance };
 
           // case "0C": // RPM, needs A and B
           //   const B = parts[3];
@@ -151,7 +176,7 @@ const BluetoothDemoScreen: React.FC = () => {
   }, [isTracking, bleService]);
 
   useEffect(() => {
-    const handleNotify = (
+    const handleNotify = async (
       event: BleManagerDidUpdateValueForCharacteristicEvent
     ) => {
       const raw = event.value;
@@ -174,6 +199,14 @@ const BluetoothDemoScreen: React.FC = () => {
           // case "05": // Coolant Temp
           //   trackingStats.coolantTemp = parsedData.value;
           //   break;
+        }
+        if (tripId && user) {
+          const { speed, distance, gallons } = trackingStats;
+          await addDataPoint(user, tripId, {
+            speed,
+            distance,
+            fuelUsed: gallons,
+          });
         }
       }
     };
@@ -492,8 +525,6 @@ const BluetoothDemoScreen: React.FC = () => {
             </Text>
             <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="px-6">
               <ConnectedState
-                onRead={read}
-                onWrite={write}
                 bleService={bleService}
                 onDisconnect={disconnectPeripheral}
               />
@@ -503,7 +534,7 @@ const BluetoothDemoScreen: React.FC = () => {
                 <View className='w-5/6 mx-auto mt-2 overflow-hidden'>
                   {/* time elapsed */}
                   <View className='flex-row items-center mx-auto gap-4'>
-                    <Text class Name='mt-0.5'>Time elapsed</Text>
+                    <Text className='mt-0.5'>Time elapsed</Text>
                     <Text className='text-2xl font-semibold'>{trackingStats.elapsed}</Text>
                   </View>
                   {/* speedometer image + car speed & fuel % */}
