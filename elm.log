@@ -4,3 +4,7 @@
 2025-05-15 13:20:18,394  root       terminate       DEBUG    Terminated.
 2025-05-15 13:21:08,619  obd.obd    __connect       WARNING  No OBD-II adapters found
 2025-05-15 13:21:08,621  obd.obd    __load_commands WARNING  Cannot load commands: No connection to car
+2025-05-15 13:26:46,873  root       run             CRITICAL Invalid setting for Windows.
+2025-05-15 13:26:46,874  root       terminate       DEBUG    Start termination procedure.
+2025-05-15 13:26:46,975  root       terminate       DEBUG    Cannot join current thread.
+2025-05-15 13:26:46,976  root       terminate       DEBUG    Terminated.
