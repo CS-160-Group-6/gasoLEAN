@@ -4,18 +4,21 @@ import {
   SafeAreaView,
   Pressable,
   ScrollView,
-  Image
+  Image,
 } from 'react-native';
 import React from 'react';
-import { useClerk, useAuth, useUser } from '@clerk/clerk-expo';
+import { useAuth, useUser, SignedIn, SignedOut } from '@clerk/clerk-expo';
+import { useRouter } from 'expo-router';
 
 const Profile = () => {
   const { signOut } = useAuth();
   const { user } = useUser();
+  const router = useRouter();
 
   const handleSignOut = async () => {
     try {
       await signOut();
+      // router.replace('../(auth)/sign-in'); // Redirect to sign-in screen after sign-out (don't need anymore?)
     } catch (err) {
       console.error(JSON.stringify(err, null, 2));
     }
@@ -37,7 +40,6 @@ const Profile = () => {
           </View>
         )}
 
-        {/* Fill space to push button to bottom */}
         <View className="flex-1" />
 
         <Pressable
@@ -51,6 +53,4 @@ const Profile = () => {
       </ScrollView>
     </SafeAreaView>
   );
-};
-
-export default Profile;
+}; export default Profile;

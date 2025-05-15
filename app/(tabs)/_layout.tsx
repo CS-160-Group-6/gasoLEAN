@@ -1,9 +1,10 @@
 import { View, Text, Image, ImageBackground, _View } from 'react-native'
-import { Tabs } from 'expo-router'
+import { Redirect, Tabs } from 'expo-router'
 import { images } from '@/constants/images';
 import { icon } from '@/constants/icon'
+import { ClerkProvider, useAuth } from '@clerk/clerk-expo';
 
-const TabIcon = ({ focused, icon, title }: any) => {
+const TabIcon = ({ focused, icon, title }: { focused: boolean; icon: any; title: string }) => {
 
   if (focused) {
     return (
@@ -28,6 +29,13 @@ const TabIcon = ({ focused, icon, title }: any) => {
 }
 
 const _Layout = () => {
+  const { isSignedIn, isLoaded } = useAuth();
+
+  if (!isLoaded) return null; // avoid flicker
+  // if (!isSignedIn) {
+  //   return <Redirect href="/(auth)/sign-in" />;
+  // }
+
   return (
     <Tabs
       screenOptions={{
@@ -46,7 +54,7 @@ const _Layout = () => {
         options={{
           title: 'Home',
           headerShown: false,
-          tabBarIcon: ({ focused }) => (
+          tabBarIcon: ({ focused }: { focused: boolean }) => (
             <TabIcon
               focused={focused}
               icon={icon.car}
@@ -54,26 +62,28 @@ const _Layout = () => {
             />
           )
         }}
+        redirect={!isSignedIn} // added after changing authentication
       />
       <Tabs.Screen
         name="drivingHistory"
         options={{
           title: 'Driving History',
           headerShown: false,
-          tabBarIcon: ({ focused }) => (
+          tabBarIcon: ({ focused }: { focused: boolean }) => (
             <TabIcon focused={focused}
               icon={icon.chart}
               title="History"
             />
           )
         }}
+        redirect={!isSignedIn} // added after changing authentication
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
           headerShown: false,
-          tabBarIcon: ({ focused }) => (
+          tabBarIcon: ({ focused }: { focused: boolean }) => (
             <TabIcon
               focused={focused}
               icon={icon.profile}
@@ -82,6 +92,7 @@ const _Layout = () => {
           )
 
         }}
+        redirect={!isSignedIn} // added after changing authentication
       />
     </Tabs>
   )

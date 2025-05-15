@@ -15,8 +15,22 @@ import CarStatsSide from '@/components/carStatsSide';
 //const manager = new BleManager();
 
 const Index = () => {
+  // const [car, setCar] = useState();
   const [isTracking, setIsTracking] = useState(false);
   const toggleTracking = () => setIsTracking(prev => !prev);
+
+  // useEffect(() => {
+  //   const fetchCarInfo = async () => {
+  //     try {
+  //       const response = await fetch('https://dummyjson.com/products/1');
+  //       const data = await response.json();
+  //       setCar(data);
+  //     } catch (error) {
+  //       console.error('Error fetching car info:', error);
+  //     }
+  //   }
+  //   fetchCarInfo();
+  // }, []);
 
   const ecoImpactStats = {
     "CO2 emission saved (lb)": <><Image source={icon.leaf} className='w-4 h-4' /> 1.2</>,
@@ -44,20 +58,6 @@ const Index = () => {
   // each object = mpg at that given time. Add a label every 5 seconds
   const data = [{ value: 0, label: "0:00" }, { value: 1 }, { value: 4 }, { value: 9 }, { value: 16 }, { value: 25, label: "0:05" }];
 
-  // user hasn't provided their car info, show input form
-  if (Object.keys(car).length < 3) {
-    return (
-      <SafeAreaView className='flex-1'>
-        <Text className="text-center font-bold border-t-2 mx-6 py-2">
-          Enter Car Info
-        </Text>
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="px-6">
-          <Image source={images.defaultCar} resizeMode='contain' className='h-44 w-5/6 mx-auto mt-3' />
-          <CarAddForm />
-        </ScrollView>
-      </SafeAreaView>
-    )
-  }
 
   // user provided their car info, show the entire tracking page
   return (

@@ -7,6 +7,23 @@ function CarAddForm() {
         setCarData(prev => ({ ...prev, [name]: value }));
     }
 
+    const handleSubmit = async () => {
+        try {
+            const response = await fetch('https://dummyjson.com/products/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(carData),
+            });
+            const data = await response.json();
+            console.log('Success:', data);
+        }
+        catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
     return (
         <View className='mt-3 gap-6'>
             <View>
@@ -28,7 +45,7 @@ function CarAddForm() {
                     className='border-b-2 py-1' />
             </View>
             {/* todo: store car info to backend (dummy.js in this case) */}
-            <Pressable className='bg-black py-3 mt-4 rounded-xl'>
+            <Pressable className='bg-black py-3 mt-4 rounded-xl' onPress={handleSubmit}>
                 <Text className='text-center text-white text-xl font-semibold'>
                     Submit
                 </Text>
