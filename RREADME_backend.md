@@ -25,7 +25,6 @@ To run with real time data and see the full functionality of the application you
 
 ## Project Structure
 
-```bash
 backend/
 │
 ├── app/
@@ -49,7 +48,6 @@ backend/
 
 ### SETUP
 
-```bash
 git clone <your-repository-url>
 cd backend
 
