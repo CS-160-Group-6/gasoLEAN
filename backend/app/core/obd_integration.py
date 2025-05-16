@@ -2,6 +2,7 @@ import time, logging, obd
 from fastapi import HTTPException, status
 from elm import Elm
 from app.vinner.decoder import decode_vin, VINDecoderError
+from elm.interpreter import Edit
 
 _emulator: Elm | None = None
 _conn: obd.OBD | None = None
@@ -33,6 +34,11 @@ def connect_to_obd(use_emulator: bool = True) -> obd.OBD:
 
             _emulator.connect_serial()
             _emulator.scenario = "car"
+            #checking vehicle info based on vin
+            edit_values(emulator=_emulator, position=10,
+                         new_value="35555857583743352A4241", field='VIN')
+            logging.info("VIN overridden")
+            print("THE VIN:", _emulator.edit_values)
             logging.info("ELM327-emulator running on %s", _pty_path)
 
         if _conn is None:
@@ -78,7 +84,7 @@ def get_decoded_vehicle_info() -> dict:
                 detail="VIN retrieval failed from OBD"
             )
 
-        vin = str(response.value).strip()
+        vin = response.value
         logging.info(f"VIN retrieved from OBD: {vin}")
 
         try:
@@ -97,3 +103,14 @@ def get_decoded_vehicle_info() -> dict:
             detail=f"VIN processing failed: {str(e)}"
         )
 
+def edit_values(emulator: Elm, position:int, new_value: str,  field: str) -> bool:
+    '''
+    Edit the emulator's values for speed and RPM.
+    
+    :param emulator: The Elm emulator instance.
+    :param position: The position in the data structure to edit.
+    :param new_value: The new value to set (as a hex string).
+    :param field: The field to edit ('SPEED' or 'RPM', etc.).
+    '''
+    edit_speed = Edit(emulator, pid=field)
+    return edit_speed.answer(position=position, replace_bytes=new_value, pid=field)
